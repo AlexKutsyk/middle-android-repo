@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
 import com.example.androidpracticumcustomview.R
+import kotlin.math.pow
 
 /*
 Задание:
@@ -20,15 +21,15 @@ class CustomContainer @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs) {
 
-    private var maxWidth = 0
-    private var maxHeight = 0
-
     init {
         setWillNotDraw(false)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+
+        var maxWidth = 0
+        var maxHeight = 0
 
         repeat(childCount) { index ->
             val child = getChildAt(index)
@@ -48,22 +49,19 @@ class CustomContainer @JvmOverloads constructor(
 
         try {
             val childCount = childCount
+            val child = getChildAt(childCount - 1)
 
-            with(childCount - 1) {
-                val child = getChildAt(this)
+            val childWidth = child.measuredWidth
+            val childHeight = child.measuredHeight
 
-                val childWidth = child.measuredWidth
-                val childHeight = child.measuredHeight
+            val childLeft = width / 2 - childWidth / 2
+            val childTop = height / 2 - childHeight / 2
+            val childRight = childLeft + childWidth
+            val childBottom = childTop + childHeight
 
-                val childLeft = width / 2 - childWidth / 2
-                val childTop = height / 2 - childHeight / 2
-                val childRight = childLeft + childWidth
-                val childBottom = childTop + childHeight
+            child.layout(childLeft, childTop, childRight, childBottom)
 
-                child.layout(childLeft, childTop, childRight, childBottom)
-
-                animateView(child, childCount)
-            }
+            animateView(child, childCount)
         } catch (e: Throwable) {
             Log.e(TAG, "Rendering error: ${e.message}")
         }
@@ -78,22 +76,22 @@ class CustomContainer @JvmOverloads constructor(
     }
 
     private fun animateView(view: View, childCount: Int) {
-        val translation = if (childCount == 1) {
-            -1 * (height / 2 - view.measuredHeight)
-        } else {
-            (height / 2 - view.measuredHeight)
-        }
+
+        val translation = (height / 2 - view.measuredHeight) * (-1L).toDouble()
+            .pow(childCount.toDouble())
 
         view.animate()
             .alpha(1f)
             .setDuration(2000)
+            .start()
 
         view.animate()
             .translationY(translation.toFloat())
             .setDuration(5000)
+            .start()
     }
 
     companion object {
-        const val TAG = "CustomContainer"
+        private const val TAG = "CustomContainer"
     }
 }

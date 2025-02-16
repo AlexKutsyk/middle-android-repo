@@ -1,17 +1,18 @@
 package com.example.androidpracticumcustomview.ui.theme
 
-import android.util.Log
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.IntOffset
 import com.example.androidpracticumcustomview.R
 import kotlinx.coroutines.launch
 
@@ -25,20 +26,21 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun CustomContainerCompose(
-    firstChild: @Composable ((
-        alpha: Animatable<Float, AnimationVector1D>,
-        offsetY: Animatable<Float, AnimationVector1D>
-    ) -> Unit)?,
-    secondChild: @Composable ((
-        alpha: Animatable<Float, AnimationVector1D>,
-        offsetY: Animatable<Float, AnimationVector1D>
-    ) -> Unit)?
+    firstChild: @Composable (() -> Unit)?,
+    secondChild: @Composable (() -> Unit)?
 ) {
     // Блок создания и инициализации переменных
-    val offsetY = remember { Animatable(0f) }
     val alpha = remember { Animatable(0f) }
+    val offsetY = remember { Animatable(0f) }
     val targetOffsetY = remember { mutableFloatStateOf(0f) }
+    val heightScreen = remember { mutableFloatStateOf(0f) }
+    val heightChild = remember { mutableFloatStateOf(0f) }
     val errorMessage = stringResource(R.string.error_message)
+
+    val childrenCount = listOfNotNull(firstChild, secondChild).size
+    if (childrenCount > 2) {
+        throw IllegalStateException(errorMessage)
+    }
 
     // Блок активации анимации при первом запуске
     LaunchedEffect(Unit) {
@@ -49,6 +51,7 @@ fun CustomContainerCompose(
             )
         }
         launch {
+            targetOffsetY.floatValue = heightScreen.floatValue / 2 - heightChild.floatValue
             offsetY.animateTo(
                 targetValue = targetOffsetY.floatValue,
                 animationSpec = tween(durationMillis = 5000)
@@ -57,36 +60,42 @@ fun CustomContainerCompose(
     }
 
     // Основной контейнер
-    Box {
-        Layout(content = {
-            firstChild?.let { firstChild(alpha, offsetY) }
-            secondChild?.let { secondChild(alpha, offsetY) }
-        }) { measurables, constraints ->
-
-            if (measurables.size > 2) throw IllegalStateException(errorMessage)
-
-            val placeables = measurables.map { measurable ->
-                measurable.measure(constraints)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .onSizeChanged { intSize ->
+                heightScreen.floatValue = intSize.height.toFloat()
             }
+    ) {
 
-            val width = constraints.maxWidth
-            val height = constraints.maxHeight
-
-            layout(width, height) {
-                placeables.forEach { placeable ->
-                    try {
-                        val position = IntOffset(
-                            (width - placeable.width) / 2, (height - placeable.height) / 2
-                        )
-                        targetOffsetY.floatValue = (position.y / 2 - 2 * placeable.height).toFloat()
-                        placeable.place(position.x, position.y)
-                    } catch (e: Throwable) {
-                        Log.e(TAG, "Rendering error: ${e.message}")
+        firstChild?.let {
+            Box(
+                modifier = Modifier
+                    .onSizeChanged { intSize ->
+                        heightChild.floatValue = intSize.height.toFloat()
                     }
-                }
+                    .graphicsLayer {
+                        this.alpha = alpha.value
+                        translationY = -offsetY.value
+                    }
+            ) {
+                it()
+            }
+        }
+        secondChild?.let {
+            Box(
+                Modifier
+                    .onSizeChanged { intSize ->
+                        heightChild.floatValue = intSize.height.toFloat()
+                    }
+                    .graphicsLayer {
+                        this.alpha = alpha.value
+                        translationY = offsetY.value
+                    }
+            ) {
+                it()
             }
         }
     }
 }
-
-const val TAG = "CustomContainerCompose"

@@ -32,8 +32,7 @@ class MainActivity : ComponentActivity() {
         setContentView(customContainer)
 
         val firstView = TextView(this).apply {
-            setTextView(
-                this@apply,
+            this.setTextView(
                 R.string.first_title,
                 R.color.purple_700
             )
@@ -41,8 +40,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val secondView = TextView(this).apply {
-            setTextView(
-                this@apply,
+            this.setTextView(
                 R.string.second_title,
                 R.color.teal_700
             )
@@ -54,12 +52,11 @@ class MainActivity : ComponentActivity() {
         }, 2000)
     }
 
-    private fun setTextView(
-        textView: TextView,
+    private fun TextView.setTextView(
         textRes: Int,
         colorRes: Int
     ) {
-        with(textView) {
+        with(this) {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
